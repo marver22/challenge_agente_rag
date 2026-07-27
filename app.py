@@ -1,7 +1,13 @@
 import streamlit as st
 import os
 import shutil
-import my_keys
+import os
+
+try:
+    import my_keys
+    except ImportError:
+        pass
+        
 from orquestador import crear_agente_rag 
 
 # Configuración inicial de la página
