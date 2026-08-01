@@ -1,5 +1,15 @@
+import sys
+import subprocess
+
+# Bypass: Instalación forzada si el servidor ignoró requirements.txt
+try:
+    import langchain
+except ImportError:
+    print("Instalando dependencias a la fuerza...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "langchain", "langchain-core", "langchain-community", "langchain-google-genai", "chromadb", "pypdf"])
 import streamlit as st
 import os
+
 import shutil
 import my_keys
 from orquestador import crear_agente_rag 
