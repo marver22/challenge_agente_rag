@@ -1,21 +1,6 @@
-import streamlit as st
 import os
-
-import pkgutil
-import importlib.metadata as md
-
-st.write("Python OK")
-
-try:
-    st.write("LangChain:", md.version("langchain"))
-except Exception as e:
-    st.write("LangChain NO instalado", e)
-
-st.write(pkgutil.find_loader("langchain"))
-st.write(pkgutil.find_loader("langchain.chains"))
-
 import shutil
-import os
+import streamlit as st
 
 try:
     import my_keys
@@ -24,10 +9,10 @@ except ImportError:
 
 from orquestador import crear_agente_rag 
 
-# Configuración inicial de la página
+# 1. Configuración inicial de la página (SIEMPRE debe ser el primer comando de Streamlit)
 st.set_page_config(page_title="Intranet - Políticas de Empresa", page_icon="🏢")
 
-# 1. Diseñar el Panel Izquierdo (Sidebar)
+# 2. Diseñar el Panel Izquierdo (Sidebar)
 with st.sidebar:
     st.header("📂 Sube tus archivos aquí")
     st.write("Sube tus documentos para que el asistente los analice. Al cerrar la app, todo se borrará por seguridad.")
@@ -40,7 +25,7 @@ with st.sidebar:
     st.markdown("---")
     st.subheader("📄 En la memoria del Bot:")
     
-    # --- MEJORA 1: Lógica para mostrar archivos con botón de eliminar (❌) ---
+    # Lógica para mostrar archivos con botón de eliminar (❌)
     if os.path.exists("knowledge_base") and os.listdir("knowledge_base"):
         for doc in os.listdir("knowledge_base"):
             # Dividimos el espacio para que el nombre y la X estén en la misma línea
@@ -64,14 +49,13 @@ with st.sidebar:
     else:
         st.write("No hay documentos cargados en esta sesión.")
 
-# 2. Lógica para procesar cuando se presiona el botón
+# 3. Lógica para procesar cuando se presiona el botón
 if btn_procesar and archivos_subidos:
     with st.spinner("Procesando e indexando tus documentos..."):
         
-        # Para evitar mezclar documentos viejos con nuevos, vaciamos la carpeta anterior
-        #if os.path.exists("knowledge_base"):
-        #    shutil.rmtree("knowledge_base")
-        #os.makedirs("knowledge_base") # La volvemos a crear limpia
+        # Nos aseguramos de que la carpeta exista antes de guardar nada (Corrección crítica)
+        if not os.path.exists("knowledge_base"):
+            os.makedirs("knowledge_base")
         
         # Borramos la base de datos vectorial vieja para que no haya datos fantasma
         if os.path.exists("chroma_db"):
@@ -90,7 +74,7 @@ if btn_procesar and archivos_subidos:
 elif btn_procesar and not archivos_subidos:
     st.sidebar.warning("Por favor, sube al menos un documento antes de procesar.")
 
-# 3. Diseño del Chat Principal (Centro de la pantalla)
+# 4. Diseño del Chat Principal (Centro de la pantalla)
 st.title("💬 Agente Corporativo Industrial")
 
 # Verificar si el agente ya fue creado en esta sesión
@@ -106,19 +90,19 @@ if "agente" not in st.session_state or st.session_state.agente is None:
     *Nota: Por seguridad y privacidad, todos los documentos se eliminarán automáticamente al finalizar la sesión.*
     """)
 else:
-    # 1. Inicializar el historial de mensajes si no existe
+    # Inicializar el historial de mensajes si no existe
     if "mensajes" not in st.session_state:
         st.session_state.mensajes = []
 
-    # 2. Mostrar el historial de conversación en pantalla
+    # Mostrar el historial de conversación en pantalla
     for mensaje in st.session_state.mensajes:
         with st.chat_message(mensaje["rol"]):
             st.markdown(mensaje["contenido"])
 
-    # --- MEJORA 2: CAJA DE TEXTO (Asegurada dentro del bloque else) ---
+    # CAJA DE TEXTO
     pregunta = st.chat_input("Escribe tu pregunta sobre los documentos...")
 
-    # 4. Lógica de respuesta
+    # Lógica de respuesta
     if pregunta:
         # Mostrar la pregunta del usuario en el chat
         with st.chat_message("user"):
@@ -127,7 +111,7 @@ else:
         # Guardar en historial
         st.session_state.mensajes.append({"rol": "user", "contenido": pregunta})
 
-        # Obtener respuesta de Gemini
+        # Obtener respuesta del LLM
         with st.chat_message("assistant"):
             with st.spinner("Analizando documentos..."):
                 try:
@@ -156,7 +140,7 @@ else:
                             fuentes_vistas.add(etiqueta)
                             texto_fuentes += etiqueta + "\n"
                     
-                    # Unimos la respuesta de Gemini con las fuentes
+                    # Unimos la respuesta con las fuentes
                     respuesta_final = texto_respuesta + texto_fuentes
                     
                     # Mostramos en pantalla
@@ -166,13 +150,12 @@ else:
                     st.session_state.mensajes.append({"rol": "assistant", "contenido": respuesta_final})
 
                 except Exception as e:
-                    # ATRAPAMOS EL ERROR: Si Google rechaza la petición por ir muy rápido
+                    # ATRAPAMOS EL ERROR: Si la API rechaza la petición por ir muy rápido
                     error_msg = str(e).lower()
                     if "429" in error_msg or "resourceexhausted" in error_msg or "quota" in error_msg:
                         st.warning("⏳ ¡Vaya, vas muy rápido! El servidor necesita un pequeño respiro. Por favor, espera unos 30 segundos y vuelve a intentar tu pregunta.")
                     else:
-                        st.error(f"❌ Ocurrió un error al procesar el documento. Intenta nuevamente.")
+                        st.error(f"❌ Ocurrió un error al procesar el documento. Intenta nuevamente. Error técnico: {e}")
                     
                     # Como hubo un error y el bot no respondió, borramos tu pregunta del historial 
-                    # para que la pantalla no se llene de preguntas sin respuesta
                     st.session_state.mensajes.pop()
