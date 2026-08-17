@@ -1,14 +1,18 @@
-import sys
-import subprocess
-
-# Bypass: Instalación forzada si el servidor ignoró requirements.txt
-try:
-    import langchain
-except ImportError:
-    print("Instalando dependencias a la fuerza...")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "langchain", "langchain-core", "langchain-community", "langchain-google-genai", "chromadb", "pypdf"])
 import streamlit as st
 import os
+
+import pkgutil
+import importlib.metadata as md
+
+st.write("Python OK")
+
+try:
+    st.write("LangChain:", md.version("langchain"))
+except Exception as e:
+    st.write("LangChain NO instalado", e)
+
+st.write(pkgutil.find_loader("langchain"))
+st.write(pkgutil.find_loader("langchain.chains"))
 
 import shutil
 import my_keys
