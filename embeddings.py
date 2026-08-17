@@ -1,5 +1,8 @@
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
-import my_keys 
+try:
+    import my_keys
+except ImportError:
+    pass
 
 def obtener_embeddings():
     # Utilizamos el modelo exacto al que tu API Key tiene acceso según el diagnóstico

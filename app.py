@@ -15,7 +15,13 @@ st.write(pkgutil.find_loader("langchain"))
 st.write(pkgutil.find_loader("langchain.chains"))
 
 import shutil
-import my_keys
+import os
+
+try:
+    import my_keys
+except ImportError:
+    pass
+
 from orquestador import crear_agente_rag 
 
 # Configuración inicial de la página
